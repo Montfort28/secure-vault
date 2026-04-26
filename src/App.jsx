@@ -19,23 +19,48 @@ function countItems(nodes) {
   return { files, folders }
 }
 
+function sortNodes(nodes, mode) {
+  if (mode === 'none') return nodes
+  return [...nodes].sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'folder' ? -1 : 1
+    if (mode === 'az') return a.name.localeCompare(b.name)
+    if (mode === 'za') return b.name.localeCompare(a.name)
+    if (mode === 'size') {
+      const parse = s => s ? parseFloat(s) * (s.includes('MB') ? 1000 : s.includes('KB') ? 1 : 0.001) : 0
+      return parse(b.size) - parse(a.size)
+    }
+    return 0
+  }).map(n => n.type === 'folder' ? { ...n, children: sortNodes(n.children || [], mode) } : n)
+}
+
 export default function App() {
   const [expanded, setExpanded] = useState(new Set())
   const [selected, setSelected] = useState(null)
   const [focusedId, setFocusedId] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [recentFiles, setRecentFiles] = useState([])
+  const [sortMode, setSortMode] = useState('none')
+  const [sortOpen, setSortOpen] = useState(false)
   const explorerRef = useRef(null)
+  const sortRef = useRef(null)
 
-  const { filtered: displayData, expandIds } = useMemo(() => {
+  useEffect(() => {
+    function handler(e) {
+      if (sortRef.current && !sortRef.current.contains(e.target)) setSortOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const { filtered: searchFiltered, expandIds } = useMemo(() => {
     if (!searchQuery.trim()) return { filtered: rawData, expandIds: new Set() }
     return searchTree(rawData, searchQuery)
   }, [searchQuery])
 
+  const displayData = useMemo(() => sortNodes(searchFiltered, sortMode), [searchFiltered, sortMode])
+
   useEffect(() => {
-    if (expandIds.size > 0) {
-      setExpanded(prev => new Set([...prev, ...expandIds]))
-    }
+    if (expandIds.size > 0) setExpanded(prev => new Set([...prev, ...expandIds]))
   }, [expandIds])
 
   const toggleExpand = useCallback((id) => {
@@ -49,38 +74,27 @@ export default function App() {
   const handleSelect = useCallback((node) => {
     setSelected(node)
     setRecentFiles(prev => {
-      const filtered = prev.filter(f => f.id !== node.id)
-      return [node, ...filtered].slice(0, 5)
+      const f = prev.filter(x => x.id !== node.id)
+      return [node, ...f].slice(0, 5)
     })
   }, [])
 
   const flatNodes = useMemo(() => flattenVisible(displayData, expanded), [displayData, expanded])
 
-  const handleKeyDown = useKeyboardNav({
-    flatNodes,
-    focusedId,
-    setFocusedId,
-    expanded,
-    toggleExpand,
-    setSelected: handleSelect,
-  })
+  const handleKeyDown = useKeyboardNav({ flatNodes, focusedId, setFocusedId, expanded, toggleExpand, setSelected: handleSelect })
 
   const { files, folders } = useMemo(() => countItems(rawData), [])
 
   function expandAll() {
     const ids = new Set()
     function walk(nodes) {
-      for (const n of nodes) {
-        if (n.type === 'folder') { ids.add(n.id); walk(n.children || []) }
-      }
+      for (const n of nodes) { if (n.type === 'folder') { ids.add(n.id); walk(n.children || []) } }
     }
     walk(rawData)
     setExpanded(ids)
   }
 
-  function collapseAll() {
-    setExpanded(new Set())
-  }
+  const SORT_LABELS = { none: 'Default', az: 'A → Z', za: 'Z → A', size: 'By Size' }
 
   return (
     <div className={styles.shell}>
@@ -114,7 +128,7 @@ export default function App() {
           </button>
           <button className={styles.navItem}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM8 5v4M8 11v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              <path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
             Audit Log
           </button>
@@ -161,17 +175,23 @@ export default function App() {
               </button>
             )}
           </div>
-          <div className={styles.topbarActions}>
-            <button className={styles.actionBtn} onClick={expandAll} title="Expand all">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <path d="M2 5l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <button className={styles.actionBtn} onClick={collapseAll} title="Collapse all">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <path d="M2 11l6-6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+          <div className={styles.topbarRight}>
+            <div className={styles.topbarStatus}>
+              <span className={styles.statusPulse} />
+              <span className={styles.statusText}>Vault Online</span>
+            </div>
+            <div className={styles.topbarActions}>
+              <button className={styles.actionBtn} onClick={expandAll} title="Expand all">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 5l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <button className={styles.actionBtn} onClick={() => setExpanded(new Set())} title="Collapse all">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 11l6-6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -185,12 +205,39 @@ export default function App() {
           >
             <div className={styles.treePaneHeader}>
               <span className={styles.treePaneTitle}>VAULT EXPLORER</span>
-              {searchQuery && (
-                <span className={styles.searchResultCount}>
-                  {flatNodes.length} result{flatNodes.length !== 1 ? 's' : ''}
-                </span>
-              )}
+              <div className={styles.treePaneActions}>
+                {searchQuery && (
+                  <span className={styles.searchResultCount}>
+                    {flatNodes.length} result{flatNodes.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+                <div className={styles.sortWrap} ref={sortRef}>
+                  <button
+                    className={`${styles.sortBtn} ${sortMode !== 'none' ? styles.sortActive : ''}`}
+                    onClick={() => setSortOpen(o => !o)}
+                    title="Sort"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                      <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                  {sortOpen && (
+                    <div className={styles.sortDropdown}>
+                      {Object.entries(SORT_LABELS).map(([key, label]) => (
+                        <button
+                          key={key}
+                          className={`${styles.sortOption} ${sortMode === key ? styles.sortOptionActive : ''}`}
+                          onClick={() => { setSortMode(key); setSortOpen(false) }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
             <div className={styles.treeScroll}>
               {displayData.length === 0 ? (
                 <div className={styles.noResults}>
@@ -222,7 +269,7 @@ export default function App() {
           <div className={styles.rightPane}>
             <Breadcrumb selected={selected} data={rawData} />
             <div className={styles.propertiesWrap}>
-              <PropertiesPanel selected={selected} recentFiles={recentFiles} />
+              <PropertiesPanel selected={selected} recentFiles={recentFiles} onSelect={handleSelect} />
             </div>
           </div>
         </div>
