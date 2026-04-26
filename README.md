@@ -1,9 +1,10 @@
 # SecureVault Explorer
 
-A file explorer UI built for enterprise cloud storage — think VS Code's sidebar but for law firms and banks navigating thousands of nested documents.
+A file explorer UI built for enterprise cloud storage. think VS Code's sidebar but for law firms and banks navigating thousands of nested documents.
 
-**Live Demo:** _[add your deployment URL]_
-**Figma Design Link:** _[(https://www.figma.com/design/pyUDYu5xAEUajzSDlCBVRH/SecureVault-Explorer?node-id=0-1&p=f&t=9eDEbsC9pWDYzjpJ-0)]_
+**Live Demo:** https://secure-vault-beige.vercel.app
+
+**Figma Design Link:** https://www.figma.com/design/pyUDYu5xAEUajzSDlCBVRH/SecureVault-Explorer?node-id=0-1&p=f&t=9eDEbsC9pWDYzjpJ-0
 
 ---
 
