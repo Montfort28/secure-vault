@@ -3,7 +3,7 @@
 A high-performance, keyboard-accessible file explorer UI for enterprise cloud storage. Built for law firms and financial institutions that need to navigate deeply nested document vaults with precision and speed.
 
 **Live Demo:** _[deployment URL]_  
-**Design File:** _[Figma/Penpot link]_
+**Design File:** _[(https://www.figma.com/design/pyUDYu5xAEUajzSDlCBVRH/SecureVault-Explorer?node-id=0-1&t=I1OrsuQBO43P68gQ-1)]_
 
 ---
 
