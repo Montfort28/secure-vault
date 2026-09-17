@@ -34,16 +34,16 @@ export function useKeyboardNav({ flatNodes, focusedId, setFocusedId, expanded, t
         break
       case 'ArrowRight':
         e.preventDefault()
-        if (node?.type === 'folder' && !expanded.has(node.id)) toggleExpand(node.id)
+        if (node?.type === 'folder' && node.children?.length && !expanded.has(node.id)) toggleExpand(node.id)
         break
       case 'ArrowLeft':
         e.preventDefault()
-        if (node?.type === 'folder' && expanded.has(node.id)) toggleExpand(node.id)
+        if (node?.type === 'folder' && node.children?.length && expanded.has(node.id)) toggleExpand(node.id)
         break
       case 'Enter':
         e.preventDefault()
         if (node?.type === 'file') setSelected(node)
-        else if (node?.type === 'folder') toggleExpand(node.id)
+        else if (node?.type === 'folder' && node.children?.length) toggleExpand(node.id)
         break
     }
   }, [flatNodes, focusedId, setFocusedId, expanded, toggleExpand, setSelected])

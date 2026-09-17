@@ -40,12 +40,16 @@ function highlightText(text, searchQuery) {
 
 function TreeNodeRow({ node, depth, isOpen, isSelected, isFocused, setFocusedId, toggleExpand, setSelected, searchQuery, rowRef }) {
   const isFolder = node.type === 'folder'
+  const canExpand = isFolder && node.children?.length > 0
   const fileInfo = !isFolder ? getFileInfo(node.name) : null
 
   function handleClick() {
     setFocusedId(node.id)
-    if (isFolder) toggleExpand(node.id)
-    else setSelected(node)
+    if (isFolder) {
+      if (canExpand) toggleExpand(node.id)
+    } else {
+      setSelected(node)
+    }
   }
 
   return (
@@ -58,7 +62,7 @@ function TreeNodeRow({ node, depth, isOpen, isSelected, isFocused, setFocusedId,
       tabIndex={-1}
     >
       <span className={styles.iconGroup}>
-        {isFolder ? <ChevronIcon open={isOpen} /> : <span className={styles.fileIndent} />}
+        {canExpand ? <ChevronIcon open={isOpen} /> : <span className={styles.fileIndent} />}
         {isFolder ? (
           <FolderIcon open={isOpen} />
         ) : (
