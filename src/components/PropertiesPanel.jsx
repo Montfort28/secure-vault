@@ -17,6 +17,14 @@ function daysAgo(dateStr) {
   return `${Math.floor(diff / 365)} years ago`
 }
 
+function getFileMetadata(file) {
+  const info = getFileInfo(file.name)
+  const dotIndex = file.name.lastIndexOf('.')
+  const extension = dotIndex > 0 ? file.name.slice(dotIndex + 1).toLowerCase() : 'file'
+
+  return { info, extension, age: daysAgo(file.modified) }
+}
+
 function MetaRow({ label, value, mono, accent }) {
   return (
     <div className={styles.metaRow}>
@@ -89,15 +97,13 @@ function EmptyState({ recentFiles, onSelect }) {
 export default function PropertiesPanel({ selected, recentFiles, onSelect }) {
   if (!selected) return <EmptyState recentFiles={recentFiles} onSelect={onSelect} />
 
-  const info = getFileInfo(selected.name)
-  const ext = selected.name.includes('.') ? selected.name.split('.').pop().toLowerCase() : 'file'
-  const ago = daysAgo(selected.modified)
+  const { info, extension, age } = getFileMetadata(selected)
 
   return (
     <div className={styles.panel}>
       <div className={styles.panelHeader}>
         <span className={styles.panelTitle}>Inspector</span>
-        <span className={styles.extPill}>.{ext}</span>
+        <span className={styles.extPill}>.{extension}</span>
       </div>
 
       <div className={styles.fileHero}>
@@ -108,7 +114,7 @@ export default function PropertiesPanel({ selected, recentFiles, onSelect }) {
         <div className={styles.fileHeroMeta}>
           <div className={styles.fileHeroName}>{selected.name}</div>
           <div className={styles.fileHeroType}>{info.label}</div>
-          {ago && <div className={styles.fileHeroAgo}>{ago}</div>}
+          {age && <div className={styles.fileHeroAgo}>{age}</div>}
         </div>
       </div>
 
@@ -124,7 +130,7 @@ export default function PropertiesPanel({ selected, recentFiles, onSelect }) {
         </div>
         <MetaRow label="Name" value={selected.name} mono />
         <MetaRow label="Type" value={info.label} />
-        <MetaRow label="Extension" value={`.${ext}`} mono />
+        <MetaRow label="Extension" value={`.${extension}`} mono />
         <MetaRow label="Size" value={selected.size || '—'} mono accent />
         <MetaRow label="Modified" value={formatDate(selected.modified)} mono />
         <MetaRow label="ID" value={selected.id} mono />

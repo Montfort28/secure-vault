@@ -73,6 +73,7 @@ export default function App() {
 
   const handleSelect = useCallback((node) => {
     setSelected(node)
+    setFocusedId(node.id)
     setRecentFiles(prev => {
       const f = prev.filter(x => x.id !== node.id)
       return [node, ...f].slice(0, 5)
