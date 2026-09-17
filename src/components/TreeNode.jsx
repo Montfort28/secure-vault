@@ -25,32 +25,22 @@ function FolderIcon({ open }) {
   )
 }
 
-export default function TreeNode({ node, depth, expanded, toggleExpand, selected, setSelected, focusedId, setFocusedId, searchQuery }) {
-  const ref = useRef(null)
+function highlightText(text, searchQuery) {
+  if (!searchQuery) return text
+  const idx = text.toLowerCase().indexOf(searchQuery.toLowerCase())
+  if (idx === -1) return text
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className={styles.highlight}>{text.slice(idx, idx + searchQuery.length)}</mark>
+      {text.slice(idx + searchQuery.length)}
+    </>
+  )
+}
+
+function TreeNodeRow({ node, depth, isOpen, isSelected, isFocused, setFocusedId, toggleExpand, setSelected, searchQuery, rowRef }) {
   const isFolder = node.type === 'folder'
-  const isOpen = expanded.has(node.id)
-  const isSelected = selected?.id === node.id
-  const isFocused = focusedId === node.id
   const fileInfo = !isFolder ? getFileInfo(node.name) : null
-
-  useEffect(() => {
-    if (isFocused && ref.current) {
-      ref.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-    }
-  }, [isFocused])
-
-  function highlight(text) {
-    if (!searchQuery) return text
-    const idx = text.toLowerCase().indexOf(searchQuery.toLowerCase())
-    if (idx === -1) return text
-    return (
-      <>
-        {text.slice(0, idx)}
-        <mark className={styles.highlight}>{text.slice(idx, idx + searchQuery.length)}</mark>
-        {text.slice(idx + searchQuery.length)}
-      </>
-    )
-  }
 
   function handleClick() {
     setFocusedId(node.id)
@@ -59,56 +49,87 @@ export default function TreeNode({ node, depth, expanded, toggleExpand, selected
   }
 
   return (
-    <div className={styles.nodeWrapper}>
-      <div
-        ref={ref}
-        className={`${styles.row} ${isSelected ? styles.selected : ''} ${isFocused ? styles.focused : ''}`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        onClick={handleClick}
-        data-id={node.id}
-        tabIndex={-1}
-      >
-        <span className={styles.iconGroup}>
-          {isFolder ? (
-            <ChevronIcon open={isOpen} />
-          ) : (
-            <span className={styles.fileIndent} />
-          )}
-          {isFolder ? (
-            <FolderIcon open={isOpen} />
-          ) : (
-            <span className={styles.fileEmoji} style={{ color: fileInfo.color }}>{fileInfo.icon}</span>
-          )}
-        </span>
-        <span className={`${styles.name} ${isFolder ? styles.folderName : ''}`}>
-          {highlight(node.name)}
-        </span>
-        {!isFolder && node.size && (
-          <span className={styles.size}>{node.size}</span>
+    <div
+      ref={rowRef}
+      className={`${styles.row} ${isSelected ? styles.selected : ''} ${isFocused ? styles.focused : ''}`}
+      style={{ paddingLeft: `${depth * 16 + 8}px` }}
+      onClick={handleClick}
+      data-id={node.id}
+      tabIndex={-1}
+    >
+      <span className={styles.iconGroup}>
+        {isFolder ? <ChevronIcon open={isOpen} /> : <span className={styles.fileIndent} />}
+        {isFolder ? (
+          <FolderIcon open={isOpen} />
+        ) : (
+          <span className={styles.fileEmoji} style={{ color: fileInfo.color }}>{fileInfo.icon}</span>
         )}
-        {isFolder && node.children?.length > 0 && (
-          <span className={styles.badge}>{node.children.length}</span>
-        )}
-      </div>
+      </span>
+      <span className={`${styles.name} ${isFolder ? styles.folderName : ''}`}>
+        {highlightText(node.name, searchQuery)}
+      </span>
+      {!isFolder && node.size && <span className={styles.size}>{node.size}</span>}
+      {isFolder && node.children?.length > 0 && <span className={styles.badge}>{node.children.length}</span>}
+    </div>
+  )
+}
 
-      {isFolder && isOpen && node.children?.length > 0 && (
-        <div className={styles.children}>
-          <div className={styles.indentLine} style={{ left: `${depth * 16 + 15}px` }} />
-          {node.children.map(child => (
-            <TreeNode
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              expanded={expanded}
-              toggleExpand={toggleExpand}
-              selected={selected}
-              setSelected={setSelected}
-              focusedId={focusedId}
-              setFocusedId={setFocusedId}
-              searchQuery={searchQuery}
-            />
-          ))}
-        </div>
+function TreeChildren({ children, depth, ...props }) {
+  return (
+    <div className={styles.children}>
+      <div className={styles.indentLine} style={{ left: `${depth * 16 + 15}px` }} />
+      {children.map(child => (
+        <TreeNode
+          key={child.id}
+          node={child}
+          depth={depth + 1}
+          {...props}
+        />
+      ))}
+    </div>
+  )
+}
+
+export default function TreeNode({ node, depth, expanded, toggleExpand, selected, setSelected, focusedId, setFocusedId, searchQuery }) {
+  const ref = useRef(null)
+  const isFolder = node.type === 'folder'
+  const isOpen = expanded.has(node.id)
+  const isSelected = selected?.id === node.id
+  const isFocused = focusedId === node.id
+  const hasChildren = isFolder && node.children?.length > 0
+
+  useEffect(() => {
+    if (isFocused && ref.current) {
+      ref.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [isFocused])
+
+  return (
+    <div className={styles.nodeWrapper}>
+      <TreeNodeRow
+        rowRef={ref}
+        node={node}
+        depth={depth}
+        isOpen={isOpen}
+        isSelected={isSelected}
+        isFocused={isFocused}
+        setFocusedId={setFocusedId}
+        toggleExpand={toggleExpand}
+        setSelected={setSelected}
+        searchQuery={searchQuery}
+      />
+      {hasChildren && isOpen && (
+        <TreeChildren
+          children={node.children}
+          depth={depth}
+          expanded={expanded}
+          toggleExpand={toggleExpand}
+          selected={selected}
+          setSelected={setSelected}
+          focusedId={focusedId}
+          setFocusedId={setFocusedId}
+          searchQuery={searchQuery}
+        />
       )}
     </div>
   )
