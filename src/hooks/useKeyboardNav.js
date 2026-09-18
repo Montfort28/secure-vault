@@ -14,6 +14,17 @@ export function flattenVisible(nodes, expanded) {
   return result
 }
 
+function findParentIndex(nodes, childIndex) {
+  const childDepth = nodes[childIndex]?.depth
+  if (childDepth === undefined || childDepth === 0) return -1
+
+  for (let index = childIndex - 1; index >= 0; index -= 1) {
+    if (nodes[index].depth === childDepth - 1) return index
+  }
+
+  return -1
+}
+
 export function useKeyboardNav({ flatNodes, focusedId, setFocusedId, expanded, toggleExpand, setSelected }) {
   return useCallback((e) => {
     const idx = flatNodes.findIndex(n => n.id === focusedId)
@@ -34,11 +45,21 @@ export function useKeyboardNav({ flatNodes, focusedId, setFocusedId, expanded, t
         break
       case 'ArrowRight':
         e.preventDefault()
-        if (node?.type === 'folder' && node.children?.length && !expanded.has(node.id)) toggleExpand(node.id)
+        if (node?.type !== 'folder' || !node.children?.length) break
+        if (!expanded.has(node.id)) {
+          toggleExpand(node.id)
+        } else if (flatNodes[idx + 1]?.depth === node.depth + 1) {
+          setFocusedId(flatNodes[idx + 1].id)
+        }
         break
       case 'ArrowLeft':
         e.preventDefault()
-        if (node?.type === 'folder' && node.children?.length && expanded.has(node.id)) toggleExpand(node.id)
+        if (node?.type === 'folder' && node.children?.length && expanded.has(node.id)) {
+          toggleExpand(node.id)
+        } else {
+          const parentIndex = findParentIndex(flatNodes, idx)
+          if (parentIndex !== -1) setFocusedId(flatNodes[parentIndex].id)
+        }
         break
       case 'Enter':
         e.preventDefault()
