@@ -59,10 +59,6 @@ export default function App() {
 
   const displayData = useMemo(() => sortNodes(searchFiltered, sortMode), [searchFiltered, sortMode])
 
-  useEffect(() => {
-    if (expandIds.size > 0) setExpanded(prev => new Set([...prev, ...expandIds]))
-  }, [expandIds])
-
   const toggleExpand = useCallback((id) => {
     setExpanded(prev => {
       const next = new Set(prev)
@@ -80,9 +76,14 @@ export default function App() {
     })
   }, [])
 
-  const flatNodes = useMemo(() => flattenVisible(displayData, expanded), [displayData, expanded])
+  const visibleExpanded = useMemo(() => {
+    if (!searchQuery.trim() || expandIds.size === 0) return expanded
+    return new Set([...expanded, ...expandIds])
+  }, [expanded, expandIds, searchQuery])
 
-  const handleKeyDown = useKeyboardNav({ flatNodes, focusedId, setFocusedId, expanded, toggleExpand, setSelected: handleSelect })
+  const flatNodes = useMemo(() => flattenVisible(displayData, visibleExpanded), [displayData, visibleExpanded])
+
+  const handleKeyDown = useKeyboardNav({ flatNodes, focusedId, setFocusedId, expanded: visibleExpanded, toggleExpand, setSelected: handleSelect })
 
   const { files, folders } = useMemo(() => countItems(rawData), [])
 
@@ -254,13 +255,13 @@ export default function App() {
                     key={node.id}
                     node={node}
                     depth={0}
-                    expanded={expanded}
+                    expanded={visibleExpanded}
                     toggleExpand={toggleExpand}
                     selected={selected}
                     setSelected={handleSelect}
                     focusedId={focusedId}
                     setFocusedId={setFocusedId}
-                    searchQuery={searchQuery}
+                    searchQuery={searchQuery.trim()}
                   />
                 ))
               )}

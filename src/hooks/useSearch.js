@@ -2,6 +2,8 @@ export function searchTree(nodes, query) {
   const q = query.toLowerCase().trim()
   const expandIds = new Set()
 
+  if (!q) return { filtered: nodes, expandIds }
+
   function walk(items, ancestorIds) {
     let hasMatch = false
     const filtered = []
