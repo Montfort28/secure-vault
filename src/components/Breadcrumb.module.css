@@ -6,8 +6,14 @@
   height: 32px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   flex-shrink: 0;
+}
+
+.bar::-webkit-scrollbar {
+  display: none;
 }
 
 .root {
@@ -50,4 +56,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
+}
+
+.copyButton {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.copyButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  color: var(--text-accent);
 }
